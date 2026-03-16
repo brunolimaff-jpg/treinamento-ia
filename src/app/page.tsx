@@ -17,10 +17,6 @@ import {
   Award, Heart, MessageCircle, ChevronRight, Play
 } from 'lucide-react'
 
-// OpenRouter API Configuration - HARDCODED
-const OPENROUTER_API_KEY = "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";
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-
 // System prompt for the AI trainer
 const SYSTEM_PROMPT = `Você é um treinador de Inteligência Artificial especializado em ensinar pessoas completamente leigas. Seu objetivo é guiar o usuário do zero absoluto até conseguir criar um agente de IA funcional.
 
