@@ -17,6 +17,8 @@ import {
   Award, Heart, MessageCircle, ChevronRight, Play
 } from 'lucide-react'
 
+const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || "";
+
 // System prompt for the AI trainer
 const SYSTEM_PROMPT = `Você é um treinador de Inteligência Artificial especializado em ensinar pessoas completamente leigas. Seu objetivo é guiar o usuário do zero absoluto até conseguir criar um agente de IA funcional.
 
