@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { 
   Send, Bot, User, Loader2, BookOpen, Sparkles, Code2, Brain,
   Rocket, Settings, Menu, X, GraduationCap, Trophy, Star,
@@ -17,7 +18,13 @@ import {
   Award, Heart, MessageCircle, ChevronRight, Play
 } from 'lucide-react'
 
+// ============================================
+// API Configuration - Uses Vercel Environment Variable
+// ============================================
+// No Vercel, adicione a variável: NEXT_PUBLIC_OPENROUTER_API_KEY
+// Em Settings > Environment Variables
 const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || "";
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // System prompt for the AI trainer
 const SYSTEM_PROMPT = `Você é um treinador de Inteligência Artificial especializado em ensinar pessoas completamente leigas. Seu objetivo é guiar o usuário do zero absoluto até conseguir criar um agente de IA funcional.
@@ -79,7 +86,7 @@ interface UserProgress {
   streak: number;
 }
 
-interface Badge {
+interface BadgeType {
   id: string;
   name: string;
   description: string;
@@ -114,7 +121,7 @@ const QUICK_QUESTIONS = [
   "Quero criar um agente de IA!",
 ];
 
-const BADGES: Badge[] = [
+const BADGES: BadgeType[] = [
   { id: 'first_question', name: 'Primeira Pergunta', description: 'Fez sua primeira pergunta', icon: MessageCircle, condition: p => p.totalMessages >= 1, rarity: 'common' },
   { id: 'curious', name: 'Curioso', description: 'Fez 5 perguntas', icon: Zap, condition: p => p.totalMessages >= 5, rarity: 'common' },
   { id: 'explorer', name: 'Explorador', description: 'Completou Módulo 1', icon: Target, condition: p => p.completedModules.includes(1), rarity: 'rare' },
@@ -269,13 +276,17 @@ function WelcomeModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   );
 }
 
-// Badge Unlock Modal
-function BadgeUnlockModal({ badge, isOpen, onClose }: { badge: Badge | null; isOpen: boolean; onClose: () => void }) {
+// Badge Unlock Modal - Fixed accessibility warnings
+function BadgeUnlockModal({ badge, isOpen, onClose }: { badge: BadgeType | null; isOpen: boolean; onClose: () => void }) {
   if (!badge) return null;
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-sm bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white text-center">
+        <VisuallyHidden>
+          <DialogTitle>Conquista Desbloqueada</DialogTitle>
+          <DialogDescription>Você desbloqueou uma nova conquista!</DialogDescription>
+        </VisuallyHidden>
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -306,7 +317,7 @@ export default function Home() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [progress, setProgress] = useState<UserProgress>(defaultProgress);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [unlockedBadge, setUnlockedBadge] = useState<Badge | null>(null);
+  const [unlockedBadge, setUnlockedBadge] = useState<BadgeType | null>(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -420,6 +431,11 @@ export default function Home() {
     });
 
     try {
+      // Check if API key is configured
+      if (!OPENROUTER_API_KEY) {
+        throw new Error('API Key não configurada. Adicione NEXT_PUBLIC_OPENROUTER_API_KEY nas variáveis de ambiente do Vercel.');
+      }
+
       // Build history
       const history = messages.map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -448,7 +464,9 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error:', errorData);
+        throw new Error(`Erro da API: ${response.status}`);
       }
 
       const data = await response.json();
@@ -467,12 +485,12 @@ export default function Home() {
         return newMessages;
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: '❌ Desculpe, ocorreu um erro. Verifique sua conexão e tente novamente.',
+        content: `❌ Erro: ${error.message || 'Verifique sua conexão e tente novamente.'}`,
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, errorMessage]);
